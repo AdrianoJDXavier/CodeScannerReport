@@ -1,0 +1,35 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+
+# Diretórios de compilação
+dist/
+build/
+
+# Arquivos de configuração de ambiente
+.env
+
+# Sistemas de pacotes
+.yarn/
+.pnp.*
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Sistema operacional
+Thumbs.db
+.DS_Store
+
+# Extensão específica
+report.pdf
