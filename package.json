@@ -49,5 +49,7 @@
   },
   "dependencies": {
     "pdfkit": "^0.15.0"
-  }
+  },
+  "publisher": "AdrianoXavier",
+  "icon": "img/logo.jpeg"
 }
