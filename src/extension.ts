@@ -48,27 +48,34 @@ function scanDirectory(dir: string): { file: string, line: number, occurrence: s
 function scanFile(content: string, filePath: string): { file: string, line: number, occurrence: string }[] {
     const report: { file: string; line: number; occurrence: string; }[] = [];
     const lines = content.split('\n');
-    const includeSet = new Set<string>(); 
+    const includeSet = new Set<string>(); // Usado para rastrear includes únicos
     const patterns = [
-        { regex: /include\s+["'](.+)["'];/g, name: 'include' },  
-        { regex: /console\.log\(.+\);/g, name: 'console.log' },  
-        { regex: /echo\s+.+;/g, name: 'echo' },                  
-        { regex: /var_dump\(.+\);/g, name: 'var_dump' },         
-        { regex: /print_r\(.+\);/g, name: 'print_r' },           
-        { regex: /rp_pre\(.+\);/g, name: 'rp_pre' },             
-        { regex: /rp_echo\(.+\);/g, name: 'rp_echo' }            
+        { regex: /include\s+["'](.+)["'];/g, name: 'include' },  // Include
+        { regex: /include_once\s+["'](.+)["'];/g, name: 'include_once' },  // Include_once
+        { regex: /console\.log\(.+\);/g, name: 'console.log' },  // console.log
+        { regex: /echo\s+\$sql\s*;/g, name: 'echo $sql' },       // echo $sql
+        { regex: /echo\s+["']aqui["'];/g, name: 'echo "aqui"' }, // echo "aqui"
+        { regex: /echo\s+["']if["'];/g, name: 'echo "if"' },     // echo "if"
+        { regex: /echo\s+["']cheguei["'];/g, name: 'echo "cheguei"' }, // echo "cheguei"
+        { regex: /echo\s+["']entrou["'];/g, name: 'echo "entrou"' },   // echo "entrou"
+        { regex: /echo\s+["']<pre>["'];/g, name: 'echo "<pre>"' },     // echo "<pre>"
+        { regex: /var_dump\(.+\);/g, name: 'var_dump' },         // var_dump
+        { regex: /print_r\(.+\);/g, name: 'print_r' },           // print_r
+        { regex: /rp_pre\(.+\);/g, name: 'rp_pre' },             // rp_pre
+        { regex: /rp_echo\(.+\);/g, name: 'rp_echo' }            // rp_echo
     ];
 
     lines.forEach((line, index) => {
         patterns.forEach(pattern => {
             let match;
             while ((match = pattern.regex.exec(line)) !== null) {
-                if (pattern.name === 'include') {
+                if (pattern.name === 'include' || pattern.name === 'include_once') {
                     const includePath = match[1];
-                    if (includeSet.has(includePath)) {
-                        report.push({ file: filePath, line: index + 1, occurrence: `Include duplicado: ${line.trim()}` });
+                    const identifier = `${pattern.name}:${includePath}`;
+                    if (includeSet.has(identifier)) {
+                        report.push({ file: filePath, line: index + 1, occurrence: `Include duplicado (${pattern.name}): ${line.trim()}` });
                     } else {
-                        includeSet.add(includePath);
+                        includeSet.add(identifier);
                     }
                 } else {
                     report.push({ file: filePath, line: index + 1, occurrence: line.trim() });
@@ -81,12 +88,12 @@ function scanFile(content: string, filePath: string): { file: string, line: numb
 }
 
 function generatePDFReport(report: { file: string, line: number, occurrence: string }[]) {
-    const doc = new PDFDocument({ layout: 'landscape' });  
+    const doc = new PDFDocument();
     const filePath = path.join(vscode.workspace.workspaceFolders![0].uri.fsPath, 'report.pdf');
     const stream = fs.createWriteStream(filePath);
 
     doc.pipe(stream);
-    doc.fontSize(14).text('Scan Report\n\n\n', { align: 'center' });
+    doc.fontSize(12).text('Scan Report\n\n\n', { align: 'center' });
 
     report.forEach(item => {
         doc.fontSize(10);
@@ -94,12 +101,10 @@ function generatePDFReport(report: { file: string, line: number, occurrence: str
         doc.font('Helvetica').text(item.file, { continued: true });
         doc.font('Helvetica-Bold').text(', Linha: ', { continued: true });
         doc.font('Helvetica').text(item.line.toString(), { continued: true });
-        doc.font('Helvetica-Bold').text(', Ocorrencia: ', { continued: true });
+        doc.font('Helvetica-Bold').text(', Ocorrência: ', { continued: true });
         doc.font('Helvetica').text(item.occurrence);
-        doc.moveTo(doc.page.margins.left, doc.y + 5)
-           .lineTo(doc.page.width - doc.page.margins.right, doc.y + 5)
-           .stroke();
-        doc.moveDown(1);
+        doc.moveTo(doc.x, doc.y + 5).lineTo(doc.page.width - doc.page.margins.right, doc.y + 5).stroke(); // Linha horizontal
+        doc.moveDown();
     });
 
     doc.end();
