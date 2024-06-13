@@ -31,6 +31,7 @@ const ignoredFiles = [
     'pdf.js.map',
     'pdf.worker.js',
     'pdf.worker.js.map',
+    'plugins.bundle.js',
     'plugins.bundle.js.map',
     'scripts.bundle.js',
     'scripts.bundle.js.map',
