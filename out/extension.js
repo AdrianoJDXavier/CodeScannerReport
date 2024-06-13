@@ -52,6 +52,26 @@ const ignoredDirectories = [
     'libs',
     'lib'
 ];
+const ignoredFiles = [
+    'pdf.js',
+    'pdf.js.map',
+    'pdf.worker.js',
+    'pdf.worker.js.map',
+    'plugins.bundle.js.map',
+    'scripts.bundle.js',
+    'scripts.bundle.js.map',
+    'apexcharts.js',
+    'apexcharts.js.map',
+    'bootstrap-tagsinput.js',
+    'widgets.bundle.js',
+    'paper-dashboard.js',
+    'jquery.mask.js',
+    'jquery.mask.min.js'
+];
+const ignoredFilePatterns = [
+    /bootstrap.*\.js/,
+    /bootstrap.*\.js\.map/
+];
 function scanDirectory(dir) {
     const report = [];
     const files = fs.readdirSync(dir);
@@ -62,9 +82,14 @@ function scanDirectory(dir) {
                 report.push(...scanDirectory(filePath));
             }
         }
-        else if (filePath.endsWith('.php') || filePath.endsWith('.js')) {
-            const content = fs.readFileSync(filePath, 'utf8');
-            report.push(...scanFile(content, filePath));
+        else {
+            const fileName = path.basename(filePath);
+            const isIgnoredFile = ignoredFiles.includes(fileName) ||
+                ignoredFilePatterns.some(pattern => pattern.test(fileName));
+            if (!isIgnoredFile && (filePath.endsWith('.php') || filePath.endsWith('.js'))) {
+                const content = fs.readFileSync(filePath, 'utf8');
+                report.push(...scanFile(content, filePath));
+            }
         }
     });
     return report;
@@ -86,7 +111,6 @@ function scanFile(content, filePath) {
         { regex: /var_dump\(.+\);/g, name: 'var_dump' }, // var_dump
         { regex: /print_r\(.+\);/g, name: 'print_r' }, // print_r
         { regex: /rp_pre\(.+\);/g, name: 'rp_pre' }, // rp_pre
-        { regex: /rp_echo\(.+\);/g, name: 'rp_echo' } // rp_echo
     ];
     lines.forEach((line, index) => {
         patterns.forEach(pattern => {
@@ -94,12 +118,11 @@ function scanFile(content, filePath) {
             while ((match = pattern.regex.exec(line)) !== null) {
                 if (pattern.name === 'include' || pattern.name === 'include_once') {
                     const includePath = match[1];
-                    const identifier = `${pattern.name}:${includePath}`;
-                    if (includeSet.has(identifier)) {
+                    if (includeSet.has(includePath)) {
                         report.push({ file: filePath, line: index + 1, occurrence: `Include duplicado (${pattern.name}): ${line.trim()}` });
                     }
                     else {
-                        includeSet.add(identifier);
+                        includeSet.add(includePath);
                     }
                 }
                 else {
@@ -128,7 +151,7 @@ function generatePDFReport(report) {
         doc.moveDown();
     });
     doc.end();
-    vscode.window.showInformationMessage(`Report generated at ${filePath}`);
+    vscode.window.showInformationMessage(`Relatório gerado em ${filePath}`);
 }
 function deactivate() { }
 exports.deactivate = deactivate;

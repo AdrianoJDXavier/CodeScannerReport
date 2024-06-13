@@ -1,31 +1,41 @@
 {
   "name": "codescannerreport",
   "displayName": "CodeScannerReport",
-  "description": "Extensão para reportar anomalidades no código",
-  "version": "0.0.1",
+  "description": "Extensão para reportar anomalias no código",
+  "version": "0.0.2",
   "engines": {
-    "vscode": "^1.76.0"
+    "vscode": "^1.70.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:codescannerreport.scanFiles"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "codescannerreport.scanFiles",
-        "title": "CodeScanner"
+        "title": "CodeScannerReport"
       }
     ],
-    "keybindings": [
-			{
-				"command": "codescannerreport.scanFiles",
-				"key": "ctrl+alt+z",
-				"mac": "cmd+alt+z",
-				"when": "true"
-			}
-    ]
+    "menus": {
+      "editor/context": [
+        {
+          "command": "codescannerreport.scanFiles",
+          "when": "editorLangId == php || editorLangId == javascript || editorLangId == javascriptreact || editorLangId == typescript || editorLangId == typescriptreact",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "codescannerreport.scanFiles",
+          "when": "explorerResourceIsFolder",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -39,7 +49,7 @@
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
     "@types/pdfkit": "^0.13.4",
-    "@types/vscode": "^1.90.0",
+    "@types/vscode": "^1.70.0",
     "@typescript-eslint/eslint-plugin": "^7.4.0",
     "@typescript-eslint/parser": "^7.4.0",
     "@vscode/test-cli": "^0.0.8",
@@ -51,5 +61,5 @@
     "pdfkit": "^0.15.0"
   },
   "publisher": "AdrianoXavier",
-  "icon": "img/logo.jpeg"
+  "icon": "img/logo.png"
 }

@@ -6,7 +6,7 @@ Code Scanner Report é uma extensão para o Visual Studio Code que permite escan
 
 - Escaneia arquivos PHP e JavaScript em um diretório especificado.
 - Identifica e relata `includes` e `include_once` duplicados.
-- Identifica e relata a presença de `console.log`, `echo`, `var_dump`, `print_r`, `rp_pre`, `rp_echo` e outras ocorrências especificadas.
+- Identifica e relata a presença de `console.log`, `echo`, `var_dump`, `print_r` e outras ocorrências especificadas.
 - Gera um relatório em PDF com detalhes sobre cada ocorrência encontrada.
 
 ## Instalação
@@ -19,6 +19,8 @@ Code Scanner Report é uma extensão para o Visual Studio Code que permite escan
 
 1. Abra o diretório que você deseja escanear no VS Code.
 2. Pressione `Ctrl+Alt+Z` (ou `Cmd+Alt+Z` no macOS) para iniciar o escaneamento dos arquivos.
+Caso prefira ao clicar com o botão direito terá a opção **CodeScannerReport**
+
 3. Um arquivo `report.pdf` será gerado no diretório raiz do seu workspace com o relatório do escaneamento.
 
 ## Atalhos de Teclado
