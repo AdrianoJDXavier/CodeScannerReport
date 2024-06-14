@@ -2,7 +2,7 @@
   "name": "codescannerreport",
   "displayName": "CodeScannerReport",
   "description": "Extensão para reportar anomalias no código",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.70.0"
   },
@@ -58,6 +58,8 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "chardet": "^2.0.0",
+    "iconv-lite": "^0.6.3",
     "pdfkit": "^0.15.0"
   },
   "publisher": "AdrianoXavier",

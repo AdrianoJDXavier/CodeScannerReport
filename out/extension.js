@@ -30,6 +30,8 @@ exports.deactivate = exports.activate = void 0;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+const chardet = __importStar(require("chardet"));
+const iconv = __importStar(require("iconv-lite"));
 const pdfkit_1 = __importDefault(require("pdfkit"));
 function activate(context) {
     let disposable = vscode.commands.registerCommand('codescannerreport.scanFiles', () => {
@@ -57,6 +59,7 @@ const ignoredFiles = [
     'pdf.js.map',
     'pdf.worker.js',
     'pdf.worker.js.map',
+    'plugins.bundle.js',
     'plugins.bundle.js.map',
     'scripts.bundle.js',
     'scripts.bundle.js.map',
@@ -66,7 +69,11 @@ const ignoredFiles = [
     'widgets.bundle.js',
     'paper-dashboard.js',
     'jquery.mask.js',
-    'jquery.mask.min.js'
+    'jquery.mask.min.js',
+    'modal.min.js',
+    'modal.js', ,
+    'semantic.js',
+    'semantic.min.js'
 ];
 const ignoredFilePatterns = [
     /bootstrap.*\.js/,
@@ -87,39 +94,52 @@ function scanDirectory(dir) {
             const isIgnoredFile = ignoredFiles.includes(fileName) ||
                 ignoredFilePatterns.some(pattern => pattern.test(fileName));
             if (!isIgnoredFile && (filePath.endsWith('.php') || filePath.endsWith('.js'))) {
-                const content = fs.readFileSync(filePath, 'utf8');
+                const content = readFileContent(filePath);
                 report.push(...scanFile(content, filePath));
             }
         }
     });
     return report;
 }
+function readFileContent(filePath) {
+    const buffer = fs.readFileSync(filePath);
+    const detectedEncoding = chardet.detect(buffer);
+    const content = iconv.decode(buffer, detectedEncoding || 'utf-8');
+    return content;
+}
+const patterns = [
+    { regex: /include\s+["'](.+)["'];/gi, name: 'include' }, // Include
+    { regex: /include_once\s+["'](.+)["'];/gi, name: 'include_once' }, // Include_once
+    { regex: /console\.log\(.+\);/gi, name: 'console.log' }, // console.log
+    {
+        regex: /echo\s+((?!<.*?>)(?!<\?php.*?\?>)(?!\w+\s*\()(?!\bactive\b|\bchecked\b|\bselected\b|.*:\s*).)*;/gis,
+        name: 'echo'
+    }, // echo excluding specific patterns and contexts including HTML, PHP, functions, and CSS
+    { regex: /var_dump\(.+\);/gi, name: 'var_dump' }, // var_dump
+    { regex: /print_r\(.+\);/gi, name: 'print_r' }, // print_r
+    { regex: /rp_pre\(.+\);/gi, name: 'rp_pre' }, // rp_pre
+    { regex: /rp_echo\(.+\);/gi, name: 'rp_echo' }, // rp_echo
+    { regex: /rp_pdo_select_table\s*\(.*?,.*?,.*?,.*?,\s*true\s*\)/gi, name: 'rp_pdo_select_table' }, // rp_pdo_select_table
+    { regex: /rp_pdo_insert_table\s*\(.*?,.*?,\s*true\s*\)/gi, name: 'rp_pdo_insert_table' }, // rp_pdo_insert_table
+    { regex: /rp_pdo_update_table\s*\(.*?,.*?,\s*true\s*\)/gi, name: 'rp_pdo_update_table' }, // rp_pdo_update_table
+    { regex: /rp_pdo_delete_table\s*\(.*?,.*?,\s*true\s*\)/gi, name: 'rp_pdo_delete_table' } // rp_pdo_delete_table
+];
 function scanFile(content, filePath) {
     const report = [];
     const lines = content.split('\n');
     const includeSet = new Set(); // Usado para rastrear includes únicos
-    const patterns = [
-        { regex: /include\s+["'](.+)["'];/g, name: 'include' }, // Include
-        { regex: /include_once\s+["'](.+)["'];/g, name: 'include_once' }, // Include_once
-        { regex: /console\.log\(.+\);/g, name: 'console.log' }, // console.log
-        { regex: /echo\s+\$sql\s*;/g, name: 'echo $sql' }, // echo $sql
-        { regex: /echo\s+["']aqui["'];/g, name: 'echo "aqui"' }, // echo "aqui"
-        { regex: /echo\s+["']if["'];/g, name: 'echo "if"' }, // echo "if"
-        { regex: /echo\s+["']cheguei["'];/g, name: 'echo "cheguei"' }, // echo "cheguei"
-        { regex: /echo\s+["']entrou["'];/g, name: 'echo "entrou"' }, // echo "entrou"
-        { regex: /echo\s+["']<pre>["'];/g, name: 'echo "<pre>"' }, // echo "<pre>"
-        { regex: /var_dump\(.+\);/g, name: 'var_dump' }, // var_dump
-        { regex: /print_r\(.+\);/g, name: 'print_r' }, // print_r
-        { regex: /rp_pre\(.+\);/g, name: 'rp_pre' }, // rp_pre
-    ];
+    const commentRegex = /^\s*(\/\/|#|\/\*|\*|\*\/)/; // Regex para identificar linhas comentadas
     lines.forEach((line, index) => {
+        if (commentRegex.test(line)) {
+            return;
+        } // Ignorar linhas comentadas
         patterns.forEach(pattern => {
             let match;
             while ((match = pattern.regex.exec(line)) !== null) {
                 if (pattern.name === 'include' || pattern.name === 'include_once') {
                     const includePath = match[1];
                     if (includeSet.has(includePath)) {
-                        report.push({ file: filePath, line: index + 1, occurrence: `Include duplicado (${pattern.name}): ${line.trim()}` });
+                        report.push({ file: filePath, line: index + 1, occurrence: `Include duplicado: ${line.trim()}` });
                     }
                     else {
                         includeSet.add(includePath);
@@ -147,7 +167,7 @@ function generatePDFReport(report) {
         doc.font('Helvetica').text(item.line.toString(), { continued: true });
         doc.font('Helvetica-Bold').text(', Ocorrência: ', { continued: true });
         doc.font('Helvetica').text(item.occurrence);
-        doc.moveTo(doc.x, doc.y + 5).lineTo(doc.page.width - doc.page.margins.right, doc.y + 5).stroke(); // Linha horizontal
+        doc.moveTo(doc.x, doc.y + 5).lineTo(doc.page.width - doc.page.margins.right, doc.y + 5).stroke();
         doc.moveDown();
     });
     doc.end();
